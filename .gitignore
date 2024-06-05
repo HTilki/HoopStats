@@ -1,0 +1,10 @@
+__pycache__
+config
+dags
+json
+logs
+plugins/
+.env
+docker-compose.yaml
+src/modules/*
+scraping.ipynb
