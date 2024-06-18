@@ -57,6 +57,7 @@ def _get_team_stat_table_id(
 class NBAGameScraper:
     def __init__(self, game: dict, session: rq.sessions.Session):
         self.game = game
+        self.url = _get_game_boxscores_url(game)
         self.session = session
         self.boxscore_response = self._get_game_boxscore_page()
 
@@ -76,9 +77,7 @@ class NBAGameScraper:
         headers = [th.getText() for th in table.find_all("tr")[1].find_all("th")]
 
         # Extract rows data
-        rows = table.find_all("tr")[
-            2:
-        ]  # Beginning from 3rd row to avoid headers
+        rows = table.find_all("tr")[2:]  # Beginning from 3rd row to avoid headers
 
         data = []
 
@@ -120,10 +119,10 @@ class NBAGameScraper:
             .filter(pl.arange(0, df.height) != 5)
             .select(
                 pl.lit(self.game.get("id")).alias("game_id"),  # code to add game_id
-                pl.lit(_get_team_abreviation(self.game[team1])).alias(
+                pl.lit(_get_team_abreviation(self.game.get(team1))).alias(
                     "team"
                 ),  # add team column
-                pl.lit(_get_team_abreviation(self.game[team2])).alias(
+                pl.lit(_get_team_abreviation(self.game.get(team2))).alias(
                     "opponent"
                 ),  # add opponent column
                 pl.lit(outcome).alias("outcome"),  # add game outcome column
@@ -133,9 +132,8 @@ class NBAGameScraper:
         )
 
     def _get_game_boxscore_page(self) -> rq.models.Response:
-        game_url = _get_game_boxscores_url(self.game)
         response = self.session.get(
-            url=game_url,
+            url=self.url,
         )
         if response.status_code == 200:
             print(
@@ -163,19 +161,22 @@ class NBAGameScraper:
     def _get_players_boxscore(
         self, content: BeautifulSoup, stats_type: Literal["basic", "advanced"] = "basic"
     ) -> pl.DataFrame:
-        table_id = _get_team_stat_table_id(
+        home_table_id = _get_team_stat_table_id(
             _get_team_abreviation(self.game.get("home_team_id")), stats_type
         )
         home_table = content.find(
             "table",
-            id=table_id,
+            id=home_table_id,
         )
         df_home = self._get_table_data(home_table)
         df_home = self._get_team_boxscore(df_home, home_team=True)
 
+        away_table_id = _get_team_stat_table_id(
+            _get_team_abreviation(self.game.get("away_team_id")), stats_type
+        )
         away_table = content.find(
             "table",
-            id=table_id,
+            id=away_table_id,
         )
         df_away = self._get_table_data(away_table)
         df_away = self._get_team_boxscore(df_away, home_team=False)
@@ -184,18 +185,18 @@ class NBAGameScraper:
 
     def _get_team_totals(self, table, home_team=True) -> pl.DataFrame:
         if home_team:
-            team1 = "home_team"
-            team2 = "away_team"
+            team1 = "home_team_id"
+            team2 = "away_team_id"
             location = 1
         else:
-            team1 = "away_team"
-            team2 = "home_team"
+            team1 = "away_team_id"
+            team2 = "home_team_id"
             location = 0
         outcome = self._get_game_outcome(home_team)
         return (
             self._get_table_data(table)[-1:]
             .select(
-                pl.lit(self.game.get("id")).alias("id"),
+                pl.lit(self.game.get("id")).alias("game_id"),
                 pl.lit(_get_team_abreviation(self.game[team1])).alias("team"),
                 pl.lit(_get_team_abreviation(self.game[team2])).alias("opponent"),
                 pl.lit(outcome).alias("outcome"),
@@ -208,25 +209,33 @@ class NBAGameScraper:
     def _get_game_totals(
         self, content: BeautifulSoup, stats_type: Literal["basic", "advanced"] = "basic"
     ) -> pl.DataFrame:
-        table_id = _get_team_stat_table_id(
+        home_table_id = _get_team_stat_table_id(
             _get_team_abreviation(self.game.get("home_team_id")), stats_type
         )
         home_table = content.find(
             "table",
-            id=table_id,
+            id=home_table_id,
+        )
+
+        away_table_id = _get_team_stat_table_id(
+            _get_team_abreviation(self.game.get("away_team_id")), stats_type
         )
         away_table = content.find(
             "table",
-            id=table_id,
+            id=away_table_id,
         )
         return self._get_team_totals(home_table, home_team=True).vstack(
             self._get_team_totals(away_table, home_team=False)
         )
 
-    def fetch_game_data(self, stats_type: Literal["basic", "advanced"] = "basic"):
+    def fetch_game_data(
+        self, stats_type: Literal["basic", "advanced"] = "basic"
+    ) -> pl.DataFrame:
         content = BeautifulSoup(self.boxscore_response.content, "html.parser")
         return self._get_players_boxscore(content, stats_type)
 
-    def fetch_total_game_data(self, stats_type: Literal["basic", "advanced"] = "basic"):
+    def fetch_total_game_data(
+        self, stats_type: Literal["basic", "advanced"] = "basic"
+    ) -> pl.DataFrame:
         content = BeautifulSoup(self.boxscore_response.content, "html.parser")
         return self._get_game_totals(content, stats_type)
