@@ -14,7 +14,7 @@ def format_basic_columns(data: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def cast_basic_columns(data: pl.DataFrame) -> pl.DataFrame:
+def cast_players_basic_box_score_columns(data: pl.DataFrame) -> pl.DataFrame:
     return data.with_columns(
         # pl.col("MP") to convert in second (format min:sec into seconds only)
         pl.col("FG").cast(pl.Int32),
@@ -36,6 +36,30 @@ def cast_basic_columns(data: pl.DataFrame) -> pl.DataFrame:
         pl.col("PF").cast(pl.Int32),
         pl.col("PTS").cast(pl.Int32),
         pl.col("+/-").cast(pl.Int32),
+    )
+
+
+def cast_teams_basic_box_score_columns(data: pl.DataFrame) -> pl.DataFrame:
+    return data.with_columns(
+        pl.col("MP").cast(pl.Int32),
+        pl.col("FG").cast(pl.Int32),
+        pl.col("FGA").cast(pl.Int32),
+        pl.col("FG%").cast(pl.Float32),
+        pl.col("3P").cast(pl.Int32),
+        pl.col("3PA").cast(pl.Int32),
+        pl.col("3P%").cast(pl.Float32),
+        pl.col("FT").cast(pl.Int32),
+        pl.col("FTA").cast(pl.Int32),
+        pl.col("FT%").cast(pl.Float32),
+        pl.col("ORB").cast(pl.Int32),
+        pl.col("DRB").cast(pl.Int32),
+        pl.col("TRB").cast(pl.Int32),
+        pl.col("AST").cast(pl.Int32),
+        pl.col("STL").cast(pl.Int32),
+        pl.col("BLK").cast(pl.Int32),
+        pl.col("TOV").cast(pl.Int32),
+        pl.col("PF").cast(pl.Int32),
+        pl.col("PTS").cast(pl.Int32),
     )
 
 
@@ -71,7 +95,7 @@ def _insert_team_id(
     )
 
 
-def basic_columns_name_change(data: pl.DataFrame) -> pl.DataFrame:
+def players_box_score_basic_columns_name_formatter(data: pl.DataFrame) -> pl.DataFrame:
     return data.rename(
         {
             "Starters": "player_id",
@@ -96,19 +120,110 @@ def basic_columns_name_change(data: pl.DataFrame) -> pl.DataFrame:
             "PTS": "points",
             "+/-": "plus_minus",
         }
+    ).select(
+        [
+            'game_id',
+            'team_id',
+            'opponent_id',
+            'outcome',
+            'player_id',
+            'starter',
+            'seconds_played',
+            'points',
+            'made_field_goal',
+            'attempted_field_goal',
+            'field_goal_percent',
+            'made_three_point',
+            'attempted_three_point',
+            'three_point_percent',
+            'made_free_throw',
+            'attempted_free_throw',
+            'free_throw_percent',
+            'offensive_rebounds',
+            'defensive_rebounds',
+            'total_rebounds',
+            'assists',
+            'steals',
+            'blocks',
+            'turnovers',
+            'personal_fouls',
+            'plus_minus',
+        ]
+    )
+
+def teams_box_score_basic_columns_name_formatter(data: pl.DataFrame) -> pl.DataFrame:
+    return data.rename(
+        {
+            "MP": "minutes_played",
+            "FG": "made_field_goal",
+            "FGA": "attempted_field_goal",
+            "FG%": "field_goal_percent",
+            "3P": "made_three_point",
+            "3PA": "attempted_three_point",
+            "3P%": "three_point_percent",
+            "FT": "made_free_throw",
+            "FTA": "attempted_free_throw",
+            "FT%": "free_throw_percent",
+            "ORB": "offensive_rebounds",
+            "DRB": "defensive_rebounds",
+            "TRB": "total_rebounds",
+            "AST": "assists",
+            "STL": "steals",
+            "BLK": "blocks",
+            "TOV": "turnovers",
+            "PF": "personal_fouls",
+            "PTS": "points",
+        }
+    ).select(
+        [
+            'game_id',
+            'team_id',
+            'opponent_id',
+            'outcome',
+            'location',
+            'minutes_played',
+            'points',
+            'made_field_goal',
+            'attempted_field_goal',
+            'field_goal_percent',
+            'made_three_point',
+            'attempted_three_point',
+            'three_point_percent',
+            'made_free_throw',
+            'attempted_free_throw',
+            'free_throw_percent',
+            'offensive_rebounds',
+            'defensive_rebounds',
+            'total_rebounds',
+            'assists',
+            'steals',
+            'blocks',
+            'turnovers',
+            'personal_fouls',
+        ]
     )
 
 
-def boxscore_cleaner(data: pl.DataFrame, teams: pl.DataFrame) -> pl.DataFrame:
+def players_box_score_cleaner(data: pl.DataFrame, teams: pl.DataFrame) -> pl.DataFrame:
     return (
         data.pipe(format_basic_columns)
-        .pipe(cast_basic_columns)
+        .pipe(cast_players_basic_box_score_columns)
         .pipe(format_mp_into_sp)
         .pipe(_insert_team_id, teams, left_column="team", right_column="abbreviation")
         .pipe(
             _insert_team_id, teams, left_column="opponent", right_column="abbreviation"
         )
-        .pipe(basic_columns_name_change)
+        .pipe(players_box_score_basic_columns_name_formatter)
+    )
+
+def teams_box_score_data_cleaner(data: pl.DataFrame, teams: pl.DataFrame) -> pl.DataFrame:
+    return (
+        data.pipe(cast_teams_basic_box_score_columns)
+        .pipe(_insert_team_id, teams, left_column="team", right_column="abbreviation")
+        .pipe(
+            _insert_team_id, teams, left_column="opponent", right_column="abbreviation"
+        )
+        .pipe(teams_box_score_basic_columns_name_formatter)
     )
 
 
