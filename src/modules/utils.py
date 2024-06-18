@@ -25,16 +25,13 @@ def insert_data_to_database(
     uri: str,
     **kwargs,
 ) -> None:
-    try:
-        data.write_database(
-            table,
-            connection=uri,
-            engine="adbc",
-            **kwargs,
-        )
-        print("Data was succefully inserted into the postgresql database.")
-    except Exception as e:
-        print(f"Failed to insert data into the postgresql database. {e}")
+    data.write_database(
+        table,
+        connection=uri,
+        engine="adbc",
+        **kwargs,
+    )
+    print("Data was succefully inserted into the postgresql database.")
 
 
 def get_postgres_uri(user: str, password: str, server: str, port: str, database: str):
