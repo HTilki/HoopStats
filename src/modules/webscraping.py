@@ -75,29 +75,27 @@ class NBAGameScraper:
     def _get_table_data(self, table: Tag) -> pl.DataFrame:
         headers = [th.getText() for th in table.find_all("tr")[1].find_all("th")]
 
-        # Extraire les lignes de données
+        # Extract rows data
         rows = table.find_all("tr")[
             2:
-        ]  # On commence à la 3ème ligne pour éviter les en-têtes
+        ]  # Beginning from 3rd row to avoid headers
 
-        # Liste pour stocker les données
         data = []
 
-        # Extraire chaque cellule de chaque ligne
+        # To every cell from all rows
         for row in rows:
             cells = row.find_all(["th", "td"])
             cell_data = [cell.getText() for cell in cells]
             data.append(cell_data)
 
-        # Trouver le nombre de colonnes maximum
         max_columns = max(len(row) for row in data)
 
-        # Compléter les lignes manquantes avec des valeurs vides
+        # Fill empty cells with None
         for row in data:
             while len(row) < max_columns:
                 row.append(None)  # ou np.nan si tu préfères
 
-        # Créer le DataFrame complet
+        # Create the complete DataFrame
         df = pl.DataFrame(data, schema=headers[:max_columns])
         return df
 
