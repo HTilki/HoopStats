@@ -3,7 +3,7 @@ import polars as pl
 
 def format_basic_columns(data: pl.DataFrame) -> pl.DataFrame:
     return data.with_columns(
-        pl.when(pl.col("MP").is_in(["Did Not Play", "Not With Team"]))
+        pl.when(pl.col("MP").is_in(["Did Not Play", "Not With Team", "Did Not Dress"]))
         .then(pl.lit("00:00"))
         .otherwise(pl.col("MP"))
         .name.keep(),
