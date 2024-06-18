@@ -6,17 +6,17 @@
 
 Scraping using the `basketball_reference_web_scraper` Python package or creating separate scraping functions.
 
-1. **Create relational database schema**:
+1. **Create relational database schema**: (*Done*)
    - Design the database schema (e.g., schedule table, game table, player stats table, etc.) using [dbdiagram.io](https://dbdiagram.io/).
    
-2. **Get every season's schedule**:
+2. **Get every season's schedule**: (*Done*)
    - Fetch and store schedules from 1985 to the present in a database or JSON files.
    
-3. **Scrape every game**:
+3. **Scrape every game**: (*In progress*)
    - Develop a robust scraping method, potentially by creating a dedicated class for this purpose.
    - Collect as much data as possible.
 
-4. **Clean the database**:
+4. **Clean the database**: (*In progress*)
    - Ensure data quality and consistency by cleaning the collected data.
 
 ### ML
